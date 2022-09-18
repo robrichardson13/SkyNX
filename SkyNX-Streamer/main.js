@@ -9,8 +9,8 @@ const isDev = require('electron-is-dev');
 const Struct = require('struct');
 const net = require('net');
 const robot = require("robotjs");
-const VGen = require("vgen-xbox")
-const vgen = new VGen();
+// const VGen = require("vgen-xbox")
+// const vgen = new VGen();
 const GyroServ = require("./Devlord_modules/GyroServ.js");
 var AutoLaunch = require('auto-launch');
 var AU = require('ansi_up');
@@ -35,10 +35,10 @@ var ffmpegAudioProcess;
 var clientSender;
 var isRunning = true;
 var restartingStream = false;
-var autoLauncher = new AutoLaunch({
-  name: 'SkyNX',
-  path: __dirname.replace("resources\\app\\", "") + '\\SkyNXStreamer.exe',
-});
+// var autoLauncher = new AutoLaunch({
+//   name: 'SkyNX',
+//   path: __dirname.replace("resources\\app\\", "") + '\\SkyNXStreamer',
+// });
 
 app.commandLine.appendSwitch('high-dpi-support', 'true');
 
@@ -144,22 +144,22 @@ ipcMain.on('donate', (event, fullMessage) => {
   exec(start + ' ' + url);
 })
 
-ipcMain.on('autoStartupOn', (event, fullMessage) => {
-  if (!autoLauncher.isEnabled) {
-    autoLauncher.enable();
-  }
-});
-ipcMain.on('autoStartupOff', (event, fullMessage) => {
-  if (autoLauncher.isEnabled) {
-    autoLauncher.disable();
-  }
-});
+// ipcMain.on('autoStartupOn', (event, fullMessage) => {
+//   if (!autoLauncher.isEnabled) {
+//     autoLauncher.enable();
+//   }
+// });
+// ipcMain.on('autoStartupOff', (event, fullMessage) => {
+//   if (autoLauncher.isEnabled) {
+//     autoLauncher.disable();
+//   }
+// });
 ipcMain.on('autoChangeResolutionOn', (event, fullMessage) => {
   autoChangeResolution = true;
 });
 
 function changeScreenRes(width, height) {
-  var df = __dirname + "\\lib\\ChangeScreenResolution.exe"
+  var df = __dirname + "\\lib\\ChangeScreenResolution"
   exec(df + " /w=" + width + " /h=" + height + " /d=0");
   screenWidth = width;
   screenHeight = height;
@@ -210,22 +210,52 @@ function startStreamer() {
     var ffmpegVideoArgs = [];
     var bitrate = quality * 1024;
     bitrate = bitrate + "k";
-    console.log(bitrate)
-    if (encoding == "NVENC") {
-      ffmpegVideoArgs = ["-probesize", "32", "-hwaccel", "auto", "-y", "-f", "gdigrab", "-framerate", fps, "-vsync", "vfr", "-video_size", screenWidth + "x" + screenHeight, "-offset_x", "0", "-offset_y", "0", "-draw_mouse", "1", "-i", "desktop", "-c:v", "h264_nvenc", "-gpu", "0", "-rc", "vbr", "-zerolatency", "1", "-f", "h264", "-vf", "scale=1280x720", "-pix_fmt", "yuv420p", "-profile:v", "baseline", "-cq:v", "19", "-g", "999999", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
-      log("Using Nvidia Encoding");
-    } else if (encoding == "AMDVCE") { //AMD Video Coding Engine
-      ffmpegVideoArgs = ["-probesize", "32", "-hwaccel", "auto", "-y", "-f", "gdigrab", "-framerate", fps, "-vsync", "vfr", "-video_size", screenWidth + "x" + screenHeight, "-offset_x", "0", "-offset_y", "0", "-draw_mouse", "1", "-i", "desktop", "-f", "h264", "-c:v", "h264_amf", "-usage", "1", "-rc", "vbr", "-vf", "scale=1280x720", "-pix_fmt", "yuv420p", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
-      log("Using AMD Video Coding Engine");
-    } else if (encoding == "QSV") {
-      ffmpegVideoArgs = ["-probesize", "32", "-hwaccel", "auto", "-y", "-f", "gdigrab", "-framerate", fps, "-vsync", "vfr", "-video_size", screenWidth + "x" + screenHeight, "-offset_x", "0", "-offset_y", "0", "-draw_mouse", "1", "-i", "desktop", "-f", "h264", "-c:v", "h264_qsv", "-preset", "faster", "-profile", "baseline", "-vf", "scale=1280x720", "-pix_fmt", "yuv420p", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
-      log("Using Intel QSV Encoding");
-    } else { //CPU Software Encoding
-      ffmpegVideoArgs = ["-probesize", "32", "-hwaccel", "auto", "-y", "-f", "gdigrab", "-framerate", fps, "-vsync", "vfr", "-video_size", screenWidth + "x" + screenHeight, "-offset_x", "0", "-offset_y", "0", "-draw_mouse", "1", "-i", "desktop", "-f", "h264", "-vf", "scale=1280x720", "-preset", "ultrafast", "-crf", "18", "-tune", "zerolatency", "-pix_fmt", "yuv420p", "-profile:v", "baseline", "-x264-params", "nal-hrd=vbr:opencl=true", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
+    console.log(`bitrate: ${bitrate}`)
+    const screenDeviceIndex = '1';
+    // const audioDeviceIndex = '0';
+    const audioDeviceIndex = 'none';
+    console.log(`screensize w: ${screenWidth} h: ${screenHeight}`)
+    // if (encoding == "NVENC") {
+    //   ffmpegVideoArgs = ["-probesize", "32", "-hwaccel", "auto", "-y", "-f", "avfoundation", "-framerate", fps, "-vsync", "vfr", "-video_size", screenWidth + "x" + screenHeight, "-i", `${screenDeviceIndex}:${audioDeviceIndex}`, "-c:v", "h264_nvenc", "-gpu", "0", "-rc", "vbr", "-zerolatency", "1", "-f", "h264", "-vf", "scale=1280x720", "-pix_fmt", "yuv420p", "-profile:v", "baseline", "-cq:v", "19", "-g", "999999", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
+    //   log("Using Nvidia Encoding");
+    // } else if (encoding == "AMDVCE") { //AMD Video Coding Engine
+    //   ffmpegVideoArgs = ["-probesize", "32", "-hwaccel", "auto", "-y", "-f", "avfoundation", "-framerate", fps, "-vsync", "vfr", "-video_size", screenWidth + "x" + screenHeight, "-i", `${screenDeviceIndex}:${audioDeviceIndex}`, "-f", "h264", "-c:v", "h264_amf", "-usage", "1", "-rc", "vbr", "-vf", "scale=1280x720", "-pix_fmt", "yuv420p", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
+    //   log("Using AMD Video Coding Engine");
+    // } else if (encoding == "QSV") {
+    //   ffmpegVideoArgs = ["-probesize", "32", "-hwaccel", "auto", "-y", "-f", "avfoundation", "-framerate", fps, "-vsync", "vfr", "-video_size", screenWidth + "x" + screenHeight, "-i", `${screenDeviceIndex}:${audioDeviceIndex}`, "-f", "h264", "-c:v", "h264_qsv", "-preset", "faster", "-profile", "baseline", "-vf", "scale=1280x720", "-pix_fmt", "yuv420p", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
+    //   log("Using Intel QSV Encoding");
+    // } else { //CPU Software Encoding
+      ffmpegVideoArgs = [
+        "-capture_cursor", "1",
+        // "-probesize", "32",
+        "-hwaccel", "auto",
+        "-y",
+        "-f", "avfoundation",
+        "-framerate", fps,
+        "-vsync", "vfr",
+        "-video_size", screenWidth + "x" + screenHeight,
+        // "-s", screenWidth + "x" + screenHeight,
+        "-i", `${screenDeviceIndex}:${audioDeviceIndex}`,
+        "-f", "h264",
+        "-vf", "scale=1280x720",
+        "-preset", "ultrafast",
+        "-crf", "18", //0-51 (lower higher quality)
+        "-tune", "zerolatency",
+        "-pix_fmt", "yuv420p",
+        "-profile:v", "baseline",
+        "-x264-params", "nal-hrd=vbr:opencl=true",
+        "-b:v", bitrate,
+        "-minrate", bitrate,
+        "-maxrate", bitrate,
+        "-bufsize", bitrate,
+        "tcp://" + ip + ":2222"
+      ];
+      // ffmpegVideoArgs = ["-capture_cursor", "1", "-probesize", "32", "-hwaccel", "auto", "-y", "-f", "avfoundation", "-framerate", fps, "-video_size", screenWidth + "x" + screenHeight, "-i", `${screenDeviceIndex}:${audioDeviceIndex}`, "-f", "h264", "-vf", "scale=1280x720", "-preset", "ultrafast", "-crf", "18", "-tune", "zerolatency", "-pix_fmt", "uyvy422", "-profile:v", "baseline", "-x264-params", "nal-hrd=vbr:opencl=true", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
       log("Using CPU Encoding");
-    }
+    // }
+    console.log('About to spawn')
     ffmpegProcess = spawn(
-      __dirname + "/lib/ffmpeg.exe",
+      "ffmpeg",
       ffmpegVideoArgs,
       {
         detached: false
@@ -246,21 +276,21 @@ function startStreamer() {
     });
   }
   if (usingAudio) {
-    ffmpegAudioProcess = spawn(
-      __dirname + "/lib/ffmpeg_old.exe",
-      ["-y", "-f", "dshow", "-i", 'audio=virtual-audio-capturer', "-f", "s16le", "-ar", "16000", "-ac", "2", "-c:a", "pcm_s16le", "udp://" + ip + ":2224?pkt_size=640"],
-      { detached: false }
-    );
-    ffmpegAudioProcess.stdout.on("data", data => {
-      log(`${data}`);
-    });
-    ffmpegAudioProcess.stderr.on('data', (data) => {
-      log(`${data}`);
-    });
-    ffmpegAudioProcess.on('close', (code) => {
-      log(`AudioProcess process exited with code ${code}`);
-      ffmpegAudioProcess = null;
-    });
+    // ffmpegAudioProcess = spawn(
+    //   __dirname + "/lib/ffmpeg_old.exe",
+    //   ["-y", "-f", "dshow", "-i", 'audio=virtual-audio-capturer', "-f", "s16le", "-ar", "16000", "-ac", "2", "-c:a", "pcm_s16le", "udp://" + ip + ":2224?pkt_size=640"],
+    //   { detached: false }
+    // );
+    // ffmpegAudioProcess.stdout.on("data", data => {
+    //   log(`${data}`);
+    // });
+    // ffmpegAudioProcess.stderr.on('data', (data) => {
+    //   log(`${data}`);
+    // });
+    // ffmpegAudioProcess.on('close', (code) => {
+    //   log(`AudioProcess process exited with code ${code}`);
+    //   ffmpegAudioProcess = null;
+    // });
   }
 
 }
@@ -316,9 +346,9 @@ ipcMain.on('kill', (event, arg) => {
 var controllerIds = [];
 function plugControllerIn() {
   try {
-    var nCid = vgen.pluginNext();
-    controllerIds.push(nCid);
-    log("Plugged in controller " + nCid + ".");
+    // var nCid = vgen.pluginNext();
+    // controllerIds.push(nCid);
+    // log("Plugged in controller " + nCid + ".");
   }
   catch (e) {
     log("Could not plug in virtual controller. Make sure the driver is installed.");
@@ -398,74 +428,74 @@ function convertAnalog(axis) {
   return na;
 }
 function handleControllerInput(hid, controllerId, playerNumber) {
-  var heldKeys = hid.get("HeldKeys" + playerNumber);
-  var LJoyX = convertAnalog(hid.get("LJoyX" + playerNumber));
-  var LJoyY = convertAnalog(hid.get("LJoyY" + playerNumber));
-  var RJoyX = convertAnalog(hid.get("RJoyX" + playerNumber));
-  var RJoyY = convertAnalog(hid.get("RJoyY" + playerNumber));
-  vgen.setAxisL(controllerId, LJoyX, LJoyY);
-  vgen.setAxisR(controllerId, RJoyX, RJoyY);
-  var inputStates = heldKeysBitmask(heldKeys);
-  //Button mapping
-  if (!abxySwap) {
-    vgen.setButton(controllerId, vgen.Buttons.B, inputStates.A);
-    vgen.setButton(controllerId, vgen.Buttons.A, inputStates.B);
-    vgen.setButton(controllerId, vgen.Buttons.X, inputStates.Y);
-    vgen.setButton(controllerId, vgen.Buttons.Y, inputStates.X);
-  } else {
-    vgen.setButton(controllerId, vgen.Buttons.B, inputStates.B);
-    vgen.setButton(controllerId, vgen.Buttons.A, inputStates.A);
-    vgen.setButton(controllerId, vgen.Buttons.X, inputStates.X);
-    vgen.setButton(controllerId, vgen.Buttons.Y, inputStates.Y);
-  }
+  // var heldKeys = hid.get("HeldKeys" + playerNumber);
+  // var LJoyX = convertAnalog(hid.get("LJoyX" + playerNumber));
+  // var LJoyY = convertAnalog(hid.get("LJoyY" + playerNumber));
+  // var RJoyX = convertAnalog(hid.get("RJoyX" + playerNumber));
+  // var RJoyY = convertAnalog(hid.get("RJoyY" + playerNumber));
+  // vgen.setAxisL(controllerId, LJoyX, LJoyY);
+  // vgen.setAxisR(controllerId, RJoyX, RJoyY);
+  // var inputStates = heldKeysBitmask(heldKeys);
+  // //Button mapping
+  // if (!abxySwap) {
+  //   vgen.setButton(controllerId, vgen.Buttons.B, inputStates.A);
+  //   vgen.setButton(controllerId, vgen.Buttons.A, inputStates.B);
+  //   vgen.setButton(controllerId, vgen.Buttons.X, inputStates.Y);
+  //   vgen.setButton(controllerId, vgen.Buttons.Y, inputStates.X);
+  // } else {
+  //   vgen.setButton(controllerId, vgen.Buttons.B, inputStates.B);
+  //   vgen.setButton(controllerId, vgen.Buttons.A, inputStates.A);
+  //   vgen.setButton(controllerId, vgen.Buttons.X, inputStates.X);
+  //   vgen.setButton(controllerId, vgen.Buttons.Y, inputStates.Y);
+  // }
 
-  vgen.setButton(controllerId, vgen.Buttons.BACK, inputStates.Minus);
-  vgen.setButton(controllerId, vgen.Buttons.START, inputStates.Plus);
-  vgen.setButton(controllerId, vgen.Buttons.LEFT_SHOULDER, inputStates.L);
-  vgen.setButton(controllerId, vgen.Buttons.RIGHT_SHOULDER, inputStates.R);
-  vgen.setButton(controllerId, vgen.Buttons.LEFT_THUMB, inputStates.LS);
-  vgen.setButton(controllerId, vgen.Buttons.RIGHT_THUMB, inputStates.RS);
-  //Trigger Mapping
-  if (inputStates.ZL) {
-    vgen.setTriggerL(controllerId, 1);
-  } else {
-    vgen.setTriggerL(controllerId, 0);
-  }
-  if (inputStates.ZR) {
-    vgen.setTriggerR(controllerId, 1);
-  } else {
-    vgen.setTriggerR(controllerId, 0);
-  }
-  //Dpad mapping
-  if (inputStates.Up || inputStates.Down || inputStates.Left || inputStates.Right) {
-    if (inputStates.Up) {
-      if (inputStates.Left || inputStates.Right) {
-        if (inputStates.Left) {
-          vgen.setDpad(controllerId, vgen.Dpad.UP_LEFT);
-        } else {
-          vgen.setDpad(controllerId, vgen.Dpad.UP_RIGHT);
-        }
-      } else {
-        vgen.setDpad(controllerId, vgen.Dpad.UP);
-      }
-    } else if (inputStates.Down) {
-      if (inputStates.Left || inputStates.Right) {
-        if (inputStates.Left) {
-          vgen.setDpad(controllerId, vgen.Dpad.DOWN_LEFT);
-        } else {
-          vgen.setDpad(controllerId, vgen.Dpad.DOWN_RIGHT);
-        }
-      } else {
-        vgen.setDpad(controllerId, vgen.Dpad.DOWN);
-      }
-    } else if (inputStates.Left) {
-      vgen.setDpad(controllerId, vgen.Dpad.LEFT);
-    } else if (inputStates.Right) {
-      vgen.setDpad(controllerId, vgen.Dpad.RIGHT);
-    }
-  } else {
-    vgen.setDpad(controllerId, vgen.Dpad.NONE);
-  }
+  // vgen.setButton(controllerId, vgen.Buttons.BACK, inputStates.Minus);
+  // vgen.setButton(controllerId, vgen.Buttons.START, inputStates.Plus);
+  // vgen.setButton(controllerId, vgen.Buttons.LEFT_SHOULDER, inputStates.L);
+  // vgen.setButton(controllerId, vgen.Buttons.RIGHT_SHOULDER, inputStates.R);
+  // vgen.setButton(controllerId, vgen.Buttons.LEFT_THUMB, inputStates.LS);
+  // vgen.setButton(controllerId, vgen.Buttons.RIGHT_THUMB, inputStates.RS);
+  // //Trigger Mapping
+  // if (inputStates.ZL) {
+  //   vgen.setTriggerL(controllerId, 1);
+  // } else {
+  //   vgen.setTriggerL(controllerId, 0);
+  // }
+  // if (inputStates.ZR) {
+  //   vgen.setTriggerR(controllerId, 1);
+  // } else {
+  //   vgen.setTriggerR(controllerId, 0);
+  // }
+  // //Dpad mapping
+  // if (inputStates.Up || inputStates.Down || inputStates.Left || inputStates.Right) {
+  //   if (inputStates.Up) {
+  //     if (inputStates.Left || inputStates.Right) {
+  //       if (inputStates.Left) {
+  //         vgen.setDpad(controllerId, vgen.Dpad.UP_LEFT);
+  //       } else {
+  //         vgen.setDpad(controllerId, vgen.Dpad.UP_RIGHT);
+  //       }
+  //     } else {
+  //       vgen.setDpad(controllerId, vgen.Dpad.UP);
+  //     }
+  //   } else if (inputStates.Down) {
+  //     if (inputStates.Left || inputStates.Right) {
+  //       if (inputStates.Left) {
+  //         vgen.setDpad(controllerId, vgen.Dpad.DOWN_LEFT);
+  //       } else {
+  //         vgen.setDpad(controllerId, vgen.Dpad.DOWN_RIGHT);
+  //       }
+  //     } else {
+  //       vgen.setDpad(controllerId, vgen.Dpad.DOWN);
+  //     }
+  //   } else if (inputStates.Left) {
+  //     vgen.setDpad(controllerId, vgen.Dpad.LEFT);
+  //   } else if (inputStates.Right) {
+  //     vgen.setDpad(controllerId, vgen.Dpad.RIGHT);
+  //   }
+  // } else {
+  //   vgen.setDpad(controllerId, vgen.Dpad.NONE);
+  // }
 
 }
 var touchX1old = 0;
@@ -696,7 +726,7 @@ function connectHID() {
       completeData = hidDataBuffer.split("ffffffffffffffff")[1].split("ffffffffffffff7")[0];
       hidDataBuffer = "";
       if (completeData.length != 256) {
-        log("Incorrect data length: " + completeData.length + " - " + completeData);
+        // log("Incorrect data length: " + completeData.length + " - " + completeData);
         return
       }
     } else {
@@ -711,7 +741,7 @@ function connectHID() {
     }
     fpsPrintTimer++;
     if (fpsPrintTimer == 10) {
-      log("switchFps=" + hid.get("frameRate"))
+      // log("switchFps=" + hid.get("frameRate"))
       fpsPrintTimer = 0;
     }
     var playerNumber;
@@ -733,7 +763,7 @@ function connectHID() {
     log('hidStreamClient Disconnected.');
     try {
       for (i in controllerIds) {
-        vgen.unplug(controllerIds[i]);
+        // vgen.unplug(controllerIds[i]);
       }
       controllerIds = [];
     } catch (error) {
@@ -755,7 +785,7 @@ function connectHID() {
 ipcMain.on('installScpVBus', (event, arg) => {
   log("Installing ScpVBus driver..")
   var df = __dirname + "\\lib\\"
-  elevate.exec(df + "devcon.exe", ["install", df + "ScpVBus.inf", "Root\\ScpVBus"],
+  elevate.exec(df + "devcon", ["install", df + "ScpVBus.inf", "Root\\ScpVBus"],
     function (error, stdout, stderr) {
       log(`${stdout}`);
       log(`${stderr}`);
@@ -770,7 +800,7 @@ ipcMain.on('installScpVBus', (event, arg) => {
 ipcMain.on('unInstallScpVBus', (event, arg) => {
   log("Un-Installing ScpVBus driver..")
   var df = __dirname + "\\lib\\"
-  elevate.exec(df + "devcon.exe", ["remove", "Root\\ScpVBus"],
+  elevate.exec(df + "devcon", ["remove", "Root\\ScpVBus"],
     function (error, stdout, stderr) {
       if (error !== null) {
         log('driver uninstall error: ' + error);

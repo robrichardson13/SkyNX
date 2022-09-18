@@ -133,11 +133,11 @@ function applyClientSettings() {
     if (clientSettings.autoStartStreamer) {
         connect();
     }
-    if (clientSettings.autoStartup) {
-        ipcRenderer.send('autoStartupOn');
-    } else {
-        ipcRenderer.send('autoStartupOff');
-    }
+    // if (clientSettings.autoStartup) {
+    //     ipcRenderer.send('autoStartupOn');
+    // } else {
+    //     ipcRenderer.send('autoStartupOff');
+    // }
 }
 
 $("#rainbowEnabled").on('change', function () {
