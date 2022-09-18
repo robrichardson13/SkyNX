@@ -225,28 +225,39 @@ function startStreamer() {
     //   ffmpegVideoArgs = ["-probesize", "32", "-hwaccel", "auto", "-y", "-f", "avfoundation", "-framerate", fps, "-vsync", "vfr", "-video_size", screenWidth + "x" + screenHeight, "-i", `${screenDeviceIndex}:${audioDeviceIndex}`, "-f", "h264", "-c:v", "h264_qsv", "-preset", "faster", "-profile", "baseline", "-vf", "scale=1280x720", "-pix_fmt", "yuv420p", "-b:v", bitrate, "-minrate", bitrate, "-maxrate", bitrate, "-bufsize", bitrate, "tcp://" + ip + ":2222"];
     //   log("Using Intel QSV Encoding");
     // } else { //CPU Software Encoding
+      
+    /*
+    ffmpeg -f avfoundation -i "1:none" -capture_cursor 1 -framerate 50 -s "1280x720" output.avi
+    ffmpeg -f avfoundation -i "1:none" -capture_cursor 1 -framerate 50 -s "1280x720" tcp://192.168.1.225:2222
+
+    //
+    ffmpeg -capture_cursor 1 -f avfoundation -framerate 30 -vsync vfr -s "1280x720" -i "1:none" -f h264 -vf "scale=1280x720" -crf 1 -tune zerolatency -pix_fmt yuv420p -profile:v baseline -x264-params "nal-hrd=vbr:opencl=true" tcp://192.168.1.225:2222
+    //
+
+    ffmpeg -capture_cursor 1 -hwaccel auto -y -f avfoundation -framerate 30 -vsync vfr -s "1280x720" -i "1:none" -f h264 -vf "scale=1280x720" -preset ultrafast -crf 18 -tune zerolatency -pix_fmt yuv420p -profile:v baseline -x264-params "nal-hrd=vbr:opencl=true" -b:v 20480k -minrate 20480k -maxrate 20480k -bufsize 20480k tcp://192.168.1.225:2222
+
+    */
       ffmpegVideoArgs = [
         "-capture_cursor", "1",
-        // "-probesize", "32",
+        "-probesize", "32",
         "-hwaccel", "auto",
         "-y",
         "-f", "avfoundation",
         "-framerate", fps,
         "-vsync", "vfr",
-        "-video_size", screenWidth + "x" + screenHeight,
-        // "-s", screenWidth + "x" + screenHeight,
+        "-s", `${screenWidth}x${screenHeight}`,
         "-i", `${screenDeviceIndex}:${audioDeviceIndex}`,
         "-f", "h264",
         "-vf", "scale=1280x720",
         "-preset", "ultrafast",
-        "-crf", "18", //0-51 (lower higher quality)
+        "-crf", "1", //0-51 (lower higher quality)
         "-tune", "zerolatency",
         "-pix_fmt", "yuv420p",
         "-profile:v", "baseline",
         "-x264-params", "nal-hrd=vbr:opencl=true",
-        "-b:v", bitrate,
-        "-minrate", bitrate,
-        "-maxrate", bitrate,
+        // "-b:v", bitrate,
+        // "-minrate", bitrate,
+        // "-maxrate", bitrate,
         "-bufsize", bitrate,
         "tcp://" + ip + ":2222"
       ];
@@ -525,6 +536,67 @@ function handleMouseInputToggling(hid, playerNumber) {
     toggledMouseInput = false;
   }
 }
+
+let pressingUpDownKey;
+let pressingLeftRightKey;
+//Maps left stick to WASD key holds
+function handleLeftStick(hid, playerNumber, stick) {
+  var LJoyX = convertAnalog(hid.get(`${stick}JoyX${playerNumber}`));
+  var LJoyY = convertAnalog(hid.get(`${stick}JoyY${playerNumber}`));
+  // console.log(`x:${LJoyX}, y:${LJoyY}`);
+
+  //If above 0.2 count it, else, not intentional
+  if (LJoyY && LJoyY > 0.20) {
+    const key = 'w';
+    if (key != pressingUpDownKey) {
+      if (pressingUpDownKey) {
+        robot.keyToggle(pressingUpDownKey, "up")
+      }
+      robot.keyToggle(key, "down")
+      pressingUpDownKey = key;
+    }
+  } else if (LJoyY && LJoyY < -0.20) {
+    const key = 's';
+    if (key != pressingUpDownKey) {
+      if (pressingUpDownKey) {
+        robot.keyToggle(pressingUpDownKey, "up")
+      }
+      robot.keyToggle(key, "down")
+      pressingUpDownKey = key;
+    }
+  } else {
+    if (pressingUpDownKey) {
+      robot.keyToggle(pressingUpDownKey, "up")
+    }
+    pressingUpDownKey = null;
+  }
+
+  if(LJoyX && LJoyX > 0.20) {
+    const key = 'd';
+    if(key != pressingLeftRightKey) {
+      if(pressingLeftRightKey) {
+        robot.keyToggle(pressingLeftRightKey, "up")
+      }
+      robot.keyToggle(key, "down")
+      pressingLeftRightKey = key;
+    }
+  } else if(LJoyX && LJoyX < -0.20) {
+    const key = 'a';
+    if(key != pressingLeftRightKey) {
+      if(pressingLeftRightKey) {
+        robot.keyToggle(pressingLeftRightKey, "up")
+      }
+      robot.keyToggle(key, "down")
+      pressingLeftRightKey = key;
+    }
+  } else {
+    if (pressingLeftRightKey) {
+      robot.keyToggle(pressingLeftRightKey, "up")
+    }
+    pressingLeftRightKey = null;
+  }
+}
+
 function handleAnalogMouse(hid, playerNumber) {
   var RJoyX = convertAnalog(hid.get("RJoyX" + playerNumber));
   var RJoyY = convertAnalog(hid.get("RJoyY" + playerNumber));
@@ -755,7 +827,10 @@ function connectHID() {
       handleAnalogMouse(hid, 1);
     } else if (mouseControl == "GYRO" && mouseInput) {
       handleGyroMouse(hid, 1);
+    } else {
+      handleLeftStick(hid, 1, 'R');
     }
+    handleLeftStick(hid, 1, 'L');
     handleTouchInput(hid);
   });
 
